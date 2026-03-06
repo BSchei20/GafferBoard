@@ -15,7 +15,7 @@ body {
     display: flex; 
     justify-content: center; 
     gap: 8px; 
-    z-index: 100; 
+    z-index: 1000; /* Extremely high to stay above everything */
     border-bottom: 1px solid #444; 
     flex-wrap: wrap; 
 }
@@ -28,6 +28,8 @@ body {
     border: 1px solid #555; 
     font-size: 14px; 
     cursor: pointer; 
+    position: relative;
+    z-index: 1001;
 }
 
 #field { 
@@ -45,32 +47,12 @@ body {
     position: absolute; 
     top: 0; 
     left: 0; 
-    z-index: 40; 
+    z-index: 10; /* Lower than players and buttons */
     width: 100%;
     height: 100%;
     touch-action: none; 
-    background: transparent;
-    /* This allows you to click formations/players THROUGH the canvas */
-    pointer-events: none; 
+    pointer-events: all; /* We will handle the "passthrough" in JS instead */
 }
-
-/* When this class is added, the canvas becomes "solid" for drawing */
-#drawLayer.active {
-    pointer-events: auto;
-}
-
-.line { 
-    position: absolute; 
-    border: 2px solid rgba(255, 255, 255, 0.7); 
-    pointer-events: none; 
-    z-index: 1;
-}
-
-.center-circle { width: 80px; height: 80px; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.half-line { width: 100%; top: 50%; border-bottom: none; }
-.box { width: 180px; height: 80px; left: 50%; transform: translateX(-50%); }
-.top-box { top: 0; border-top: none; }
-.bot-box { bottom: 0; border-bottom: none; }
 
 .piece { 
     position: absolute; 
@@ -81,7 +63,7 @@ body {
     justify-content: center; 
     font-weight: bold; 
     color: white; 
-    z-index: 60; 
+    z-index: 50; /* Above the ink */
     touch-action: none; 
     box-shadow: 0 4px 8px rgba(0,0,0,0.4); 
     user-select: none;
@@ -89,5 +71,12 @@ body {
 
 .red { background: #d32f2f; border: 2px solid #b71c1c; }
 .blue { background: #1976d2; border: 2px solid #0d47a1; }
-.ball { width: 26px; height: 26px; background: white; border: 2px solid #333; z-index: 70; border-radius: 50%; }
-.ball::after { content: '⚽'; font-size: 16px; display: flex; justify-content: center; align-items: center; }
+.ball { width: 24px; height: 24px; background: white; border: 2px solid #333; z-index: 60; border-radius: 50%; }
+
+/* Pitch Lines */
+.line { position: absolute; border: 2px solid rgba(255, 255, 255, 0.5); pointer-events: none; z-index: 1; }
+.center-circle { width: 80px; height: 80px; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.half-line { width: 100%; top: 50%; }
+.box { width: 180px; height: 80px; left: 50%; transform: translateX(-50%); }
+.top-box { top: 0; border-top: none; }
+.bot-box { bottom: 0; border-bottom: none; }
