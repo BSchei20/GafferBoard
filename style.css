@@ -10,14 +10,13 @@ body {
     touch-action: none; 
 }
 
-/* Control Bar */
 #controls { 
     background: #000; 
     padding: 10px; 
     display: flex; 
     justify-content: center; 
     gap: 8px; 
-    z-index: 30; 
+    z-index: 100; /* Buttons stay on top */
     border-bottom: 1px solid #444; 
     flex-wrap: wrap; 
 }
@@ -30,10 +29,8 @@ body {
     border: 1px solid #555; 
     font-size: 14px; 
     cursor: pointer; 
-    font-weight: 500; 
 }
 
-/* The Soccer Pitch */
 #field { 
     position: relative; 
     flex-grow: 1; 
@@ -42,31 +39,33 @@ body {
                       linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px);
     background-size: 100% 10%; 
     overflow: hidden;
-    touch-action: none; /* Critical for Safari Dragging */
+    touch-action: none;
 }
 
-/* Drawing Canvas */
+/* DRAWING LAYER - Must be high Z-INDEX to work */
 #drawLayer { 
     position: absolute; 
     top: 0; 
     left: 0; 
-    z-index: 5; 
+    z-index: 50; 
+    width: 100%;
+    height: 100%;
     touch-action: none; 
 }
 
-/* Pitch Markings */
 .line { 
     position: absolute; 
     border: 2px solid rgba(255, 255, 255, 0.7); 
     pointer-events: none; 
+    z-index: 1;
 }
+
 .center-circle { width: 80px; height: 80px; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 .half-line { width: 100%; top: 50%; border-bottom: none; }
 .box { width: 180px; height: 80px; left: 50%; transform: translateX(-50%); }
 .top-box { top: 0; border-top: none; }
 .bot-box { bottom: 0; border-bottom: none; }
 
-/* Player Pieces */
 .piece { 
     position: absolute; 
     width: 36px; height: 36px; 
@@ -76,8 +75,8 @@ body {
     justify-content: center; 
     font-weight: bold; 
     color: white; 
-    z-index: 10; 
-    touch-action: none; /* Critical for Safari */
+    z-index: 60; /* Players are above the drawing layer so you can still drag them */
+    touch-action: none; 
     box-shadow: 0 4px 8px rgba(0,0,0,0.4); 
     font-size: 14px;
     user-select: none;
@@ -85,12 +84,5 @@ body {
 
 .red { background: #d32f2f; border: 2px solid #b71c1c; }
 .blue { background: #1976d2; border: 2px solid #0d47a1; }
-
-.ball { 
-    width: 26px; height: 26px; 
-    background: white; 
-    border: 2px solid #333; 
-    z-index: 15; 
-    border-radius: 50%;
-}
+.ball { width: 26px; height: 26px; background: white; border: 2px solid #333; z-index: 70; border-radius: 50%; }
 .ball::after { content: '⚽'; font-size: 16px; display: flex; justify-content: center; align-items: center; }
