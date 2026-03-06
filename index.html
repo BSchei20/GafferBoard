@@ -1,13 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>GafferBoard - Soccer Tactics</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
 <div id="controls">
     <select id="formationSelect" onchange="applyTactics()">
         <option value="">Select Formation</option>
@@ -27,22 +17,10 @@
             <option value="2-2-1">2-2-1</option>
         </optgroup>
     </select>
-    <button class="btn" onclick="togglePhase()">Toggle Atk/Def</button>
+    
+    <button class="btn" onclick="resetBoard()">Reset Players</button>
     <button class="btn" id="drawBtn" onclick="setTool('draw', 'black')">Black Ink</button>
     <button class="btn" id="redDrawBtn" onclick="setTool('draw', '#d32f2f')">Red Ink</button>
     <button class="btn" onclick="clearCanvas()">Clear Lines</button>
-    <button class="btn" onclick="resetBoard()">Reset Players</button>
+    <button class="btn" onclick="togglePhase()">Toggle Atk/Def</button>
 </div>
-
-<div id="field">
-    <canvas id="drawLayer"></canvas>
-    <div class="line half-line"></div>
-    <div class="line center-circle"></div>
-    <div class="line box top-box"></div>
-    <div class="line box bot-box"></div>
-    <div id="pieces-layer"></div>
-</div>
-
-<script src="script.js"></script>
-</body>
-</html>
