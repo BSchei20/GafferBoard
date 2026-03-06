@@ -22,18 +22,6 @@ const tacticalMaps = {
         "3-2-3": {
             defense: { 1:[.5,.95], 2:[.25,.82], 3:[.5,.85], 4:[.75,.82], 8:[.4,.68], 10:[.6,.68], 11:[.2,.5], 7:[.8,.5], 9:[.5,.42] },
             attack: { 1:[.5,.92], 2:[.15,.65], 3:[.5,.75], 4:[0.85,.65], 8:[.35,.5], 10:[.65,.5], 11:[.1,.25], 7:[.9,.25], 9:[.5,.15] }
-        },
-        "3-4-1-flat": {
-            defense: { 1:[.5,.95], 2:[.25,.82], 3:[.5,.85], 4:[.75,.82], 11:[.15,.62], 8:[.38,.62], 10:[.62,.62], 7:[.85,.62], 9:[.5,.42] },
-            attack: { 1:[.5,.92], 2:[.2,.7], 3:[.5,.78], 4:[.8,.7], 11:[.1,.35], 8:[.38,.5], 10:[.62,.5], 7:[.9,.35], 9:[.5,.15] }
-        },
-        "3-4-1-diamond": {
-            defense: { 1:[.5,.95], 2:[.25,.82], 3:[.5,.85], 4:[.75,.82], 8:[.5,.7], 6:[.3,.6], 5:[.7,.6], 10:[.5,.52], 9:[.5,.38] },
-            attack: { 1:[.5,.92], 2:[.2,.7], 3:[.5,.78], 4:[.8,.7], 8:[.5,.6], 6:[.25,.45], 5:[.75,.45], 10:[.5,.32], 9:[.5,.12] }
-        },
-        "3-3-2": {
-            defense: { 1:[.5,.95], 2:[.25,.82], 3:[.5,.85], 4:[.75,.82], 8:[.3,.62], 10:[.5,.65], 7:[.7,.62], 9:[.4,.42], 11:[.6,.42] },
-            attack: { 1:[.5,.92], 2:[.15,.65], 3:[.5,.75], 4:[.85,.65], 8:[.25,.45], 10:[.5,.5], 7:[.75,.45], 9:[.4,.15], 11:[.6,.15] }
         }
     },
     "6v6": {
@@ -44,10 +32,86 @@ const tacticalMaps = {
     }
 };
 
+/* --- APP STATE --- */
 let currentPhase = 'defense';
+let redTeam = {};
+let blueTeam = {};
+let isDrawing = false;
+let currentTool = 'draw';
+let currentColor = 'black';
+let field, layer, canvas, ctx;
 
-/* --- CORE FUNCTIONS --- */
+/* --- INITIALIZATION --- */
+window.onload = () => {
+    field = document.getElementById('field');
+    layer = document.getElementById('pieces-layer');
+    canvas = document.getElementById('drawLayer');
+    ctx = canvas.getContext('2d');
+    
+    initCanvas();
+    resetBoard();
+    
+    window.onresize = initCanvas;
+};
 
+function initCanvas() {
+    canvas.width = field.clientWidth;
+    canvas.height = field.clientHeight;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 3;
+}
+
+/* --- PIECE LOGIC --- */
+function createPiece(num, color, x, y) {
+    const p = document.createElement('div');
+    p.className = `piece ${color}`;
+    if (num === 'ball') {
+        p.classList.add('ball');
+    } else {
+        p.innerText = num;
+    }
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    
+    // Drag and Drop Logic
+    p.onpointerdown = (e) => {
+        e.stopPropagation();
+        p.style.transition = 'none'; // Instant move when dragging
+        p.setPointerCapture(e.pointerId);
+        p.onpointermove = (ev) => {
+            const rect = field.getBoundingClientRect();
+            p.style.left = (ev.clientX - rect.left - 18) + 'px';
+            p.style.top = (ev.clientY - rect.top - 18) + 'px';
+        };
+        p.onpointerup = () => { 
+            p.onpointermove = null; 
+            if (num === 'ball') checkBallMagnetism(p);
+        };
+    };
+    
+    layer.appendChild(p);
+    return p;
+}
+
+function resetBoard() {
+    layer.innerHTML = '';
+    redTeam = {}; blueTeam = {};
+    const w = window.innerWidth;
+    const h = field.offsetHeight;
+    
+    // Setup Red Team on the sidelines
+    for (let i = 1; i <= 11; i++) {
+        redTeam[i] = createPiece(i, 'red', 10, 10 + (i * 40));
+    }
+    // Setup Blue Team on the other sideline
+    for (let i = 1; i <= 11; i++) {
+        blueTeam[i] = createPiece(i, 'blue', w - 50, 10 + (i * 40));
+    }
+    // Add Ball
+    createPiece('ball', 'ball', w/2, h/2);
+}
+
+/* --- TACTICAL ENGINE --- */
 function togglePhase() {
     currentPhase = (currentPhase === 'defense') ? 'attack' : 'defense';
     applyTactics();
@@ -57,9 +121,8 @@ function applyTactics() {
     const formation = document.getElementById('formationSelect').value;
     if (!formation) return;
     
-    // Auto-detect team size (11, 9, or 6)
     let size = "11v11";
-    if (["3-2-3", "3-4-1-flat", "3-4-1-diamond", "3-3-2"].includes(formation)) size = "9v9";
+    if (["3-2-3"].includes(formation)) size = "9v9";
     if (formation === "2-2-1") size = "6v6";
 
     const map = tacticalMaps[size][formation][currentPhase];
@@ -71,22 +134,48 @@ function applyTactics() {
         if (piece) {
             piece.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
             const [px, py] = map[n];
-            piece.style.left = (px * w - 17) + 'px';
-            piece.style.top = (py * h - 17) + 'px';
+            piece.style.left = (px * w - 18) + 'px';
+            piece.style.top = (py * h - 18) + 'px';
         }
     });
 }
 
+/* --- DRAWING ENGINE --- */
+function setTool(tool, color) {
+    currentTool = tool;
+    if(color) currentColor = color;
+}
+
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+canvas.onpointerdown = (e) => {
+    isDrawing = true;
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+};
+
+canvas.onpointermove = (e) => {
+    if (!isDrawing) return;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = currentColor;
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+};
+
+canvas.onpointerup = () => { isDrawing = false; };
+
+/* --- MAGNETISM --- */
 function checkBallMagnetism(ballPiece) {
     const ballRect = ballPiece.getBoundingClientRect();
     const players = document.querySelectorAll('.piece:not(.ball)');
     players.forEach(player => {
         const pRect = player.getBoundingClientRect();
         const dist = Math.hypot(ballRect.x - pRect.x, ballRect.y - pRect.y);
-        if (dist < 40) { // Snaps if within 40 pixels
-            ballPiece.style.left = (parseFloat(player.style.left) + 5) + 'px';
-            ballPiece.style.top = (parseFloat(player.style.top) + 20) + 'px';
+        if (dist < 40) {
+            ballPiece.style.left = player.style.left;
+            ballPiece.style.top = player.style.top;
         }
     });
 }
-
