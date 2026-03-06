@@ -1,3 +1,4 @@
+/* --- TACTICAL DATA --- */
 const tacticalMaps = {
     "11v11": {
         "4-3-3": {
@@ -43,9 +44,11 @@ const tacticalMaps = {
     }
 };
 
+/* --- STATE --- */
 let currentPhase = 'defense';
 let redTeam = {}, blueTeam = {};
 let isDrawing = false;
+let drawMode = false;
 let currentColor = 'black';
 let field, layer, canvas, ctx;
 
@@ -60,29 +63,26 @@ window.onload = function() {
     
     window.addEventListener('resize', initCanvas);
 
-    canvas.addEventListener('pointerdown', function(e) {
+    // DRAWING LOGIC
+    canvas.addEventListener('pointerdown', (e) => {
+        if (!drawMode) return;
         isDrawing = true;
-        const rect = canvas.getBoundingClientRect();
         ctx.beginPath();
         ctx.strokeStyle = currentColor;
         ctx.lineWidth = 4;
-        ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
+        const rect = canvas.getBoundingClientRect();
         ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-        canvas.setPointerCapture(e.pointerId);
     });
 
-    canvas.addEventListener('pointermove', function(e) {
+    canvas.addEventListener('pointermove', (e) => {
         if (!isDrawing) return;
         const rect = canvas.getBoundingClientRect();
         ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
         ctx.stroke();
     });
 
-    canvas.addEventListener('pointerup', function(e) {
-        isDrawing = false;
-        canvas.releasePointerCapture(e.pointerId);
-    });
+    canvas.addEventListener('pointerup', () => isDrawing = false);
 };
 
 function initCanvas() {
@@ -90,69 +90,28 @@ function initCanvas() {
     canvas.height = field.clientHeight;
 }
 
+/* --- BUTTON ACTIONS --- */
 function setTool(tool, color) {
+    drawMode = true;
     currentColor = color;
-    // Activate the canvas for drawing
-    canvas.classList.add('active');
+    canvas.style.pointerEvents = 'auto'; // Enable drawing
 }
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Deactivate canvas so formations/players work again
-    canvas.classList.remove('active');
-}
-
-function resetBoard() {
-    layer.innerHTML = '';
-    redTeam = {}; blueTeam = {};
-    const w = field.clientWidth;
-    for (let i = 1; i <= 11; i++) {
-        redTeam[i] = createPiece(i, 'red', 10, 10 + (i * 40));
-        blueTeam[i] = createPiece(i, 'blue', w - 50, 10 + (i * 40));
-    }
-    createPiece('ball', 'ball', w / 2, 100);
-    // Deactivate drawing mode on reset
-    canvas.classList.remove('active');
-}
-
-function createPiece(num, color, x, y) {
-    const p = document.createElement('div');
-    p.className = 'piece ' + color;
-    p.style.touchAction = 'none'; 
-    if (num === 'ball') p.classList.add('ball'); else p.innerText = num;
-    p.style.left = x + 'px';
-    p.style.top = y + 'px';
-    
-    p.onpointerdown = function(e) {
-        e.preventDefault();
-        e.stopPropagation(); 
-        p.style.transition = 'none';
-        p.setPointerCapture(e.pointerId);
-        p.onpointermove = function(ev) {
-            const rect = field.getBoundingClientRect();
-            p.style.left = (ev.clientX - rect.left - 18) + 'px';
-            p.style.top = (ev.clientY - rect.top - 18) + 'px';
-        };
-        p.onpointerup = function() {
-            p.onpointermove = null;
-            if (num === 'ball') checkBallMagnetism(p);
-        };
-    };
-    layer.appendChild(p);
-    return p;
+    drawMode = false;
+    canvas.style.pointerEvents = 'none'; // Re-enable piece dragging
 }
 
 function togglePhase() {
     currentPhase = (currentPhase === 'defense') ? 'attack' : 'defense';
+    console.log("Switched to:", currentPhase);
     applyTactics();
 }
 
 function applyTactics() {
     const formation = document.getElementById('formationSelect').value;
     if (!formation) return;
-    
-    // Disable drawing mode so you can see the formation change
-    canvas.classList.remove('active');
 
     let size = "11v11";
     if (["3-2-3", "3-4-1-flat", "3-4-1-diamond", "3-3-2"].includes(formation)) size = "9v9";
@@ -169,10 +128,12 @@ function applyTactics() {
         if (redMap && redMap[n]) {
             redP.style.display = 'flex';
             blueP.style.display = 'flex';
-            redP.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
-            blueP.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+            redP.style.transition = 'all 0.6s ease-out';
+            blueP.style.transition = 'all 0.6s ease-out';
+            
             redP.style.left = (redMap[n][0] * w - 18) + 'px';
             redP.style.top = (redMap[n][1] * h - 18) + 'px';
+            
             blueP.style.left = ((1 - blueMap[n][0]) * w - 18) + 'px';
             blueP.style.top = ((1 - blueMap[n][1]) * h - 18) + 'px';
         } else {
@@ -182,16 +143,35 @@ function applyTactics() {
     }
 }
 
-function checkBallMagnetism(ballPiece) {
-    const ballRect = ballPiece.getBoundingClientRect();
-    const players = document.querySelectorAll('.piece:not(.ball)');
-    players.forEach(function(player) {
-        if (player.style.display !== 'none') {
-            const pRect = player.getBoundingClientRect();
-            if (Math.hypot(ballRect.x - pRect.x, ballRect.y - pRect.y) < 40) {
-                ballPiece.style.left = player.style.left;
-                ballPiece.style.top = player.style.top;
-            }
-        }
-    });
+function resetBoard() {
+    layer.innerHTML = '';
+    const w = field.clientWidth;
+    for (let i = 1; i <= 11; i++) {
+        redTeam[i] = createPiece(i, 'red', 10, 10 + (i * 40));
+        blueTeam[i] = createPiece(i, 'blue', w - 50, 10 + (i * 40));
+    }
+    createPiece('ball', 'ball', w / 2, 50);
+    clearCanvas();
+}
+
+function createPiece(num, color, x, y) {
+    const p = document.createElement('div');
+    p.className = 'piece ' + color;
+    if (num === 'ball') p.classList.add('ball'); else p.innerText = num;
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    
+    p.onpointerdown = function(e) {
+        if (drawMode) return; // Don't drag if we are drawing
+        e.preventDefault();
+        p.setPointerCapture(e.pointerId);
+        p.onpointermove = (ev) => {
+            const rect = field.getBoundingClientRect();
+            p.style.left = (ev.clientX - rect.left - 18) + 'px';
+            p.style.top = (ev.clientY - rect.top - 18) + 'px';
+        };
+        p.onpointerup = () => p.onpointermove = null;
+    };
+    layer.appendChild(p);
+    return p;
 }
