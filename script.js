@@ -1,4 +1,4 @@
-/* --- COMPLETE TACTICAL LIBRARY --- */
+/* --- TACTICAL MAPS REMAIN THE SAME --- */
 const tacticalMaps = {
     "11v11": {
         "4-3-3": {
@@ -44,26 +44,28 @@ const tacticalMaps = {
     }
 };
 
-/* --- APP STATE --- */
 let currentPhase = 'defense';
 let redTeam = {}, blueTeam = {};
 let isDrawing = false;
 let currentColor = 'black';
 let field, layer, canvas, ctx;
 
-/* --- INITIALIZATION --- */
 window.onload = function() {
     field = document.getElementById('field');
     layer = document.getElementById('pieces-layer');
     canvas = document.getElementById('drawLayer');
+    ctx = canvas.getContext('2d');
     
-    if (canvas) {
-        ctx = canvas.getContext('2d');
-        initCanvas();
-        resetBoard();
-    }
+    initCanvas();
+    resetBoard();
     
     window.addEventListener('resize', initCanvas);
+
+    // DRAWING EVENTS
+    canvas.onpointerdown = startDrawing;
+    canvas.onpointermove = draw;
+    canvas.onpointerup = stopDrawing;
+    canvas.onpointerleave = stopDrawing;
 };
 
 function initCanvas() {
@@ -73,103 +75,23 @@ function initCanvas() {
     ctx.lineWidth = 4;
 }
 
-/* --- PIECE MANAGEMENT --- */
-function createPiece(num, color, x, y) {
-    const p = document.createElement('div');
-    p.className = 'piece ' + color;
-    p.style.touchAction = 'none'; 
-    
-    if (num === 'ball') {
-        p.classList.add('ball');
-    } else {
-        p.innerText = num;
-    }
-    
-    p.style.left = x + 'px';
-    p.style.top = y + 'px';
-    
-    p.onpointerdown = function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        p.style.transition = 'none';
-        p.setPointerCapture(e.pointerId);
-        
-        p.onpointermove = function(ev) {
-            const rect = field.getBoundingClientRect();
-            p.style.left = (ev.clientX - rect.left - 18) + 'px';
-            p.style.top = (ev.clientY - rect.top - 18) + 'px';
-        };
-        
-        p.onpointerup = function() {
-            p.onpointermove = null;
-            if (num === 'ball') checkBallMagnetism(p);
-        };
-    };
-    
-    layer.appendChild(p);
-    return p;
+function startDrawing(e) {
+    isDrawing = true;
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
 }
 
-function resetBoard() {
-    layer.innerHTML = '';
-    redTeam = {};
-    blueTeam = {};
-    const w = field.clientWidth;
-    
-    for (let i = 1; i <= 11; i++) {
-        redTeam[i] = createPiece(i, 'red', 10, 10 + (i * 40));
-        blueTeam[i] = createPiece(i, 'blue', w - 50, 10 + (i * 40));
-    }
-    createPiece('ball', 'ball', w / 2, 100);
+function draw(e) {
+    if (!isDrawing) return;
+    ctx.strokeStyle = currentColor;
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
 }
 
-/* --- TACTICAL ENGINE --- */
-function togglePhase() {
-    currentPhase = (currentPhase === 'defense') ? 'attack' : 'defense';
-    applyTactics();
+function stopDrawing() {
+    isDrawing = false;
 }
 
-function applyTactics() {
-    const formation = document.getElementById('formationSelect').value;
-    if (!formation) return;
-    
-    let size = "11v11";
-    if (["3-2-3", "3-4-1-flat", "3-4-1-diamond", "3-3-2"].includes(formation)) size = "9v9";
-    if (formation === "2-2-1") size = "6v6";
-
-    const redMap = tacticalMaps[size][formation][currentPhase];
-    const blueMap = tacticalMaps[size][formation]['defense']; // Blue mirrors the defensive shell
-    
-    const w = field.clientWidth;
-    const h = field.clientHeight;
-
-    for (let n = 1; n <= 11; n++) {
-        const redP = redTeam[n];
-        const blueP = blueTeam[n];
-
-        if (redMap && redMap[n]) {
-            redP.style.display = 'flex';
-            blueP.style.display = 'flex';
-            redP.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
-            blueP.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
-
-            const rx = redMap[n][0];
-            const ry = redMap[n][1];
-            redP.style.left = (rx * w - 18) + 'px';
-            redP.style.top = (ry * h - 18) + 'px';
-
-            const bx = blueMap[n][0];
-            const by = blueMap[n][1];
-            blueP.style.left = ((1 - bx) * w - 18) + 'px';
-            blueP.style.top = ((1 - by) * h - 18) + 'px';
-        } else {
-            if (redP) redP.style.display = 'none';
-            if (blueP) blueP.style.display = 'none';
-        }
-    }
-}
-
-/* --- DRAWING ENGINE --- */
 function setTool(tool, color) {
     currentColor = color;
 }
@@ -178,27 +100,78 @@ function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-// Fixed Drawing Logic
-if (document.getElementById('drawLayer')) {
-    const canvasEl = document.getElementById('drawLayer');
+function createPiece(num, color, x, y) {
+    const p = document.createElement('div');
+    p.className = 'piece ' + color;
+    p.style.touchAction = 'none'; 
+    if (num === 'ball') p.classList.add('ball'); else p.innerText = num;
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
     
-    canvasEl.onpointerdown = function(e) {
-        isDrawing = true;
-        ctx.strokeStyle = currentColor;
-        ctx.beginPath();
-        ctx.moveTo(e.offsetX, e.offsetY);
+    p.onpointerdown = function(e) {
+        e.preventDefault();
+        e.stopPropagation(); // Stops drawing when moving a player
+        p.style.transition = 'none';
+        p.setPointerCapture(e.pointerId);
+        p.onpointermove = function(ev) {
+            const rect = field.getBoundingClientRect();
+            p.style.left = (ev.clientX - rect.left - 18) + 'px';
+            p.style.top = (ev.clientY - rect.top - 18) + 'px';
+        };
+        p.onpointerup = function() {
+            p.onpointermove = null;
+            if (num === 'ball') checkBallMagnetism(p);
+        };
     };
+    layer.appendChild(p);
+    return p;
+}
 
-    canvasEl.onpointermove = function(e) {
-        if (isDrawing) {
-            ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.stroke();
+function resetBoard() {
+    layer.innerHTML = '';
+    redTeam = {}; blueTeam = {};
+    const w = field.clientWidth;
+    for (let i = 1; i <= 11; i++) {
+        redTeam[i] = createPiece(i, 'red', 10, 10 + (i * 40));
+        blueTeam[i] = createPiece(i, 'blue', w - 50, 10 + (i * 40));
+    }
+    createPiece('ball', 'ball', w / 2, 100);
+}
+
+function togglePhase() {
+    currentPhase = (currentPhase === 'defense') ? 'attack' : 'defense';
+    applyTactics();
+}
+
+function applyTactics() {
+    const formation = document.getElementById('formationSelect').value;
+    if (!formation) return;
+    let size = "11v11";
+    if (["3-2-3", "3-4-1-flat", "3-4-1-diamond", "3-3-2"].includes(formation)) size = "9v9";
+    if (formation === "2-2-1") size = "6v6";
+
+    const redMap = tacticalMaps[size][formation][currentPhase];
+    const blueMap = tacticalMaps[size][formation]['defense'];
+    const w = field.clientWidth;
+    const h = field.clientHeight;
+
+    for (let n = 1; n <= 11; n++) {
+        const redP = redTeam[n];
+        const blueP = blueTeam[n];
+        if (redMap && redMap[n]) {
+            redP.style.display = 'flex';
+            blueP.style.display = 'flex';
+            redP.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+            blueP.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+            redP.style.left = (redMap[n][0] * w - 18) + 'px';
+            redP.style.top = (redMap[n][1] * h - 18) + 'px';
+            blueP.style.left = ((1 - blueMap[n][0]) * w - 18) + 'px';
+            blueP.style.top = ((1 - blueMap[n][1]) * h - 18) + 'px';
+        } else {
+            if (redP) redP.style.display = 'none';
+            if (blueP) blueP.style.display = 'none';
         }
-    };
-
-    canvasEl.onpointerup = function() {
-        isDrawing = false;
-    };
+    }
 }
 
 function checkBallMagnetism(ballPiece) {
@@ -207,8 +180,7 @@ function checkBallMagnetism(ballPiece) {
     players.forEach(function(player) {
         if (player.style.display !== 'none') {
             const pRect = player.getBoundingClientRect();
-            const dist = Math.hypot(ballRect.x - pRect.x, ballRect.y - pRect.y);
-            if (dist < 40) {
+            if (Math.hypot(ballRect.x - pRect.x, ballRect.y - pRect.y) < 40) {
                 ballPiece.style.left = player.style.left;
                 ballPiece.style.top = player.style.top;
             }
