@@ -1,47 +1,54 @@
+/* --- LAYOUT & THEME --- */
 body { 
     margin: 0; 
-    background: #222; 
-    font-family: -apple-system, sans-serif; 
+    background: #1a1a1a; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
     height: 100vh; 
     overflow: hidden; 
     display: flex; 
     flex-direction: column; 
-    touch-action: none; 
+    touch-action: none; /* Prevents browser zooming while drawing */
 }
 
 #controls { 
     background: #000; 
-    padding: 10px; 
+    padding: 12px; 
     display: flex; 
     justify-content: center; 
-    gap: 8px; 
-    z-index: 1000; 
-    border-bottom: 1px solid #444; 
+    gap: 10px; 
+    z-index: 1000; /* Keeps buttons above the field */
+    border-bottom: 1px solid #333; 
     flex-wrap: wrap; 
 }
 
 .btn, select { 
-    padding: 10px 14px; 
-    border-radius: 6px; 
-    background: #333; 
+    padding: 10px 16px; 
+    border-radius: 8px; 
+    background: #2a2a2a; 
     color: white; 
-    border: 1px solid #555; 
+    border: 1px solid #444; 
     font-size: 14px; 
+    font-weight: 600;
     cursor: pointer; 
+    transition: background 0.2s;
 }
 
+.btn:active { background: #444; }
+
+/* --- THE PITCH --- */
 #field { 
     position: relative; 
     flex-grow: 1; 
-    background-color: #5d8a3d; 
-    background-image: linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), 
-                      linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px);
-    background-size: 100% 10%; 
+    background-color: #4c7a34; 
+    /* Grass Patches Effect */
+    background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), 
+                      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 10% 10%; 
     overflow: hidden;
     touch-action: none;
 }
 
-/* DRAWING LAYER - Now behind players (z-index 10) */
+/* DRAWING CANVAS (Below players, above grass) */
 #drawLayer { 
     position: absolute; 
     top: 0; 
@@ -50,35 +57,61 @@ body {
     width: 100%;
     height: 100%;
     touch-action: none; 
-    background: transparent;
 }
 
-/* PLAYER PIECES - Always on top (z-index 50) */
+/* PLAYER PIECES */
 .piece { 
     position: absolute; 
-    width: 36px; height: 36px; 
+    width: 38px; 
+    height: 38px; 
     border-radius: 50%; 
     display: flex; 
     align-items: center; 
     justify-content: center; 
     font-weight: bold; 
     color: white; 
-    z-index: 50; 
+    z-index: 50; /* Above the ink */
     touch-action: none; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4); 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
     user-select: none;
-    /* This makes the automated movement smooth */
-    transition: left 0.6s cubic-bezier(0.25, 1, 0.5, 1), top 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    font-size: 15px;
+    border: 2px solid rgba(255,255,255,0.2);
+    /* THE GLIDE: Makes automated movement smooth */
+    transition: left 0.6s cubic-bezier(0.23, 1, 0.32, 1), 
+                top 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.red { background: #d32f2f; border: 2px solid #b71c1c; }
-.blue { background: #1976d2; border: 2px solid #0d47a1; }
-.ball { width: 26px; height: 26px; background: white; border: 2px solid #333; z-index: 60; border-radius: 50%; }
+.red { background: #e63946; }
+.blue { background: #0077b6; }
 
-/* Pitch Lines */
-.line { position: absolute; border: 2px solid rgba(255, 255, 255, 0.5); pointer-events: none; z-index: 1; }
-.center-circle { width: 80px; height: 80px; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.half-line { width: 100%; top: 50%; }
-.box { width: 180px; height: 80px; left: 50%; transform: translateX(-50%); }
+.ball { 
+    width: 26px; 
+    height: 26px; 
+    background: #fff; 
+    border: 2px solid #222; 
+    z-index: 60; 
+    border-radius: 50%; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ball::after { content: '⚽'; font-size: 14px; }
+
+/* --- PITCH MARKINGS --- */
+.line { 
+    position: absolute; 
+    border: 2px solid rgba(255, 255, 255, 0.4); 
+    pointer-events: none; 
+    z-index: 5; 
+}
+.center-circle { 
+    width: 100px; height: 100px; border-radius: 50%; 
+    top: 50%; left: 50%; transform: translate(-50%, -50%); 
+}
+.half-line { width: 100%; top: 50%; border-bottom: none; }
+.box { 
+    width: 40%; height: 15%; left: 30%; 
+    border-radius: 0 0 40px 40px;
+}
 .top-box { top: 0; border-top: none; }
-.bot-box { bottom: 0; border-bottom: none; }
+.bot-box { bottom: 0; border-bottom: none; border-radius: 40px 40px 0 0; }
