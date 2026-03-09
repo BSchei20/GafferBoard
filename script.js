@@ -43,8 +43,7 @@ window.onload = function() {
     canvas = document.getElementById('drawLayer');
     ctx = canvas.getContext('2d');
     
-    // Safety check to make sure elements exist before starting
-    if (!field || !layer || !canvas) return console.error("Missing elements!");
+    if (!field || !layer || !canvas) return;
 
     initCanvas();
     resetBoard();
@@ -52,7 +51,6 @@ window.onload = function() {
     
     window.addEventListener('resize', initCanvas);
 
-    // Drawing Logic
     canvas.addEventListener('pointerdown', (e) => {
         if (!drawMode) return;
         isDrawing = true;
@@ -169,10 +167,12 @@ function applyCustomTactic(name) {
         el.style.left = (pos[0] * w) + 'px';
         el.style.top = (pos[1] * h) + 'px';
     };
-    for (let i in data.red) if (redTeam[i]) move(redTeam[i], data.red[i]);
-    for (let i in data.blue) if (blueTeam[i]) move(blueTeam[i], data.blue[i]);
-    const ball = document.querySelector('.ball');
-    if (ball && data.ball) move(ball, data.ball);
+    try {
+        for (let i in data.red) if (redTeam[i]) move(redTeam[i], data.red[i]);
+        for (let i in data.blue) if (blueTeam[i]) move(blueTeam[i], data.blue[i]);
+        const ball = document.querySelector('.ball');
+        if (ball && data.ball) move(ball, data.ball);
+    } catch(e) { console.error("Error loading play:", e); }
 }
 
 function createPiece(num, color, x, y) {
@@ -203,6 +203,7 @@ function createPiece(num, color, x, y) {
 }
 
 function resetBoard() {
+    if (!layer) return;
     layer.innerHTML = "";
     const w = field.clientWidth;
     for (let i = 1; i <= 11; i++) {
