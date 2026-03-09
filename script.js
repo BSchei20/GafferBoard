@@ -1,4 +1,22 @@
-/* Keep your existing tacticalMaps object at the top */
+/* --- TACTICAL DATA REMAINS THE SAME --- */
+const tacticalMaps = {
+    "11v11": {
+        "4-3-3": {
+            defense: { 1:[.5,.95], 2:[.2,.8], 3:[.4,.82], 4:[.6,.82], 5:[.8,.8], 6:[.35,.65], 8:[.5,.7], 10:[.65,.65], 7:[.85,.5], 9:[.5,.45], 11:[.15,.5] },
+            attack: { 1:[.5,.92], 2:[.1,.55], 3:[.38,.75], 4:[.62,.75], 5:[.9,.55], 6:[.3,.5], 8:[.5,.6], 10:[.7,.5], 7:[.92,.25], 9:[.5,.15], 11:[.08,.25] }
+        },
+        "4-4-2-flat": {
+            defense: { 1:[.5,.95], 2:[.15,.8], 3:[.38,.82], 4:[.62,.82], 5:[.85,.8], 6:[.15,.65], 8:[.4,.65], 10:[.6,.65], 7:[.85,.65], 9:[.4,.45], 11:[.6,.45] },
+            attack: { 1:[.5,.92], 2:[.1,.6], 3:[.38,.75], 4:[.62,.75], 5:[.9,.6], 6:[.1,.35], 8:[.4,.55], 10:[.6,.55], 7:[.9,.35], 9:[.4,.18], 11:[.6,.18] }
+        }
+    },
+    "9v9": {
+        "3-4-1-flat": {
+            defense: { 1:[.5,.95], 2:[.25,.82], 3:[.5,.85], 4:[.75,.82], 11:[.15,.62], 8:[.38,.62], 10:[.62,.62], 7:[.85,.62], 9:[.5,.42] },
+            attack: { 1:[.5,.92], 2:[.2,.7], 3:[.5,.78], 4:[.8,.7], 11:[.1,.35], 8:[.38,.5], 10:[.62,.5], 7:[.9,.35], 9:[.5,.15] }
+        }
+    }
+};
 
 let currentPhase = 'defense';
 let redTeam = {}, blueTeam = {};
@@ -15,10 +33,10 @@ window.onload = function() {
     
     initCanvas();
     resetBoard();
+    loadSavedPlays(); // Load custom plays on startup
     
     window.addEventListener('resize', initCanvas);
 
-    // DRAWING LOGIC
     canvas.addEventListener('pointerdown', (e) => {
         if (!drawMode) return;
         isDrawing = true;
@@ -45,15 +63,78 @@ function initCanvas() {
     canvas.height = field.clientHeight;
 }
 
-function setTool(tool, color) {
-    drawMode = true;
-    currentColor = color;
+/* --- SAVE SYSTEM --- */
+function saveCustomTactic() {
+    const name = prompt("Name your custom play (e.g. 'Corner L1'):");
+    if (!name) return;
+
+    const w = field.clientWidth;
+    const h = field.clientHeight;
+    const snapshot = { red: {}, blue: {}, ball: [0,0] };
+
+    // Helper to get % position
+    const getPos = (el) => [parseFloat(el.style.left) / w, parseFloat(el.style.top) / h];
+
+    for (let i in redTeam) snapshot.red[i] = getPos(redTeam[i]);
+    for (let i in blueTeam) snapshot.blue[i] = getPos(blueTeam[i]);
+    
+    const ball = document.querySelector('.ball');
+    if (ball) snapshot.ball = getPos(ball);
+
+    const saved = JSON.parse(localStorage.getItem('gafferPlays') || '{}');
+    saved[name] = snapshot;
+    localStorage.setItem('gafferPlays', JSON.stringify(saved));
+
+    addPlayToDropdown(name);
+    alert("Play Saved!");
 }
 
-function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function loadSavedPlays() {
+    const saved = JSON.parse(localStorage.getItem('gafferPlays') || '{}');
+    for (let name in saved) {
+        addPlayToDropdown(name);
+    }
 }
 
+function addPlayToDropdown(name) {
+    const group = document.getElementById('customGroup');
+    const opt = document.createElement('option');
+    opt.value = "CUSTOM_" + name;
+    opt.innerText = name;
+    group.appendChild(opt);
+}
+
+function handleFormationChange() {
+    const val = document.getElementById('formationSelect').value;
+    if (val.startsWith("CUSTOM_")) {
+        const playName = val.replace("CUSTOM_", "");
+        applyCustomTactic(playName);
+    } else {
+        applyTactics();
+    }
+}
+
+function applyCustomTactic(name) {
+    const saved = JSON.parse(localStorage.getItem('gafferPlays') || '{}');
+    const data = saved[name];
+    if (!data) return;
+
+    const w = field.clientWidth;
+    const h = field.clientHeight;
+
+    const move = (el, pos) => {
+        el.style.left = (pos[0] * w) + 'px';
+        el.style.top = (pos[1] * h) + 'px';
+    };
+
+    for (let i in data.red) move(redTeam[i], data.red[i]);
+    for (let i in data.blue) move(blueTeam[i], data.blue[i]);
+    
+    const ball = document.querySelector('.ball');
+    if (ball) move(ball, data.ball);
+}
+
+/* --- CORE FUNCTIONS (GLIDE & PIECES) --- */
 function createPiece(num, color, x, y) {
     const p = document.createElement('div');
     p.className = 'piece ' + color;
@@ -64,23 +145,16 @@ function createPiece(num, color, x, y) {
     p.onpointerdown = function(e) {
         e.preventDefault();
         e.stopPropagation();
-        // Disable transition so dragging is instant
         p.style.transition = 'none';
         p.setPointerCapture(e.pointerId);
-        
         p.onpointermove = (ev) => {
             const rect = field.getBoundingClientRect();
             p.style.left = (ev.clientX - rect.left - 18) + 'px';
             p.style.top = (ev.clientY - rect.top - 18) + 'px';
         };
-        
         p.onpointerup = () => {
             p.onpointermove = null;
-            // Re-enable transition for future automated movements
-            setTimeout(() => {
-                p.style.transition = 'left 0.6s cubic-bezier(0.25, 1, 0.5, 1), top 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
-            }, 10);
-            if (num === 'ball') checkBallMagnetism(p);
+            setTimeout(() => { p.style.transition = 'left 0.6s cubic-bezier(0.25, 1, 0.5, 1), top 0.6s cubic-bezier(0.25, 1, 0.5, 1)'; }, 10);
         };
     };
     layer.appendChild(p);
@@ -94,33 +168,24 @@ function togglePhase() {
 
 function applyTactics() {
     const formation = document.getElementById('formationSelect').value;
-    if (!formation) return;
+    if (!formation || formation.startsWith("CUSTOM_")) return;
 
-    let size = "11v11";
-    if (["3-2-3", "3-4-1-flat", "3-4-1-diamond", "3-3-2"].includes(formation)) size = "9v9";
-    if (formation === "2-2-1") size = "6v6";
-
+    let size = formation.includes('3-4-1') ? "9v9" : "11v11";
     const redMap = tacticalMaps[size][formation][currentPhase];
     const blueMap = tacticalMaps[size][formation]['defense'];
-    const w = field.clientWidth;
-    const h = field.clientHeight;
+    const w = field.clientWidth, h = field.clientHeight;
 
     for (let n = 1; n <= 11; n++) {
-        const redP = redTeam[n];
-        const blueP = blueTeam[n];
-        if (redMap && redMap[n]) {
-            redP.style.display = 'flex';
-            blueP.style.display = 'flex';
-            
-            // Apply automated smooth movement
-            redP.style.left = (redMap[n][0] * w - 18) + 'px';
-            redP.style.top = (redMap[n][1] * h - 18) + 'px';
-            
-            blueP.style.left = ((1 - blueMap[n][0]) * w - 18) + 'px';
-            blueP.style.top = ((1 - blueMap[n][1]) * h - 18) + 'px';
+        if (redMap[n]) {
+            redTeam[n].style.display = 'flex';
+            blueTeam[n].style.display = 'flex';
+            redTeam[n].style.left = (redMap[n][0] * w - 18) + 'px';
+            redTeam[n].style.top = (redMap[n][1] * h - 18) + 'px';
+            blueTeam[n].style.left = ((1 - blueMap[n][0]) * w - 18) + 'px';
+            blueTeam[n].style.top = ((1 - blueMap[n][1]) * h - 18) + 'px';
         } else {
-            if (redP) redP.style.display = 'none';
-            if (blueP) blueP.style.display = 'none';
+            redTeam[n].style.display = 'none';
+            blueTeam[n].style.display = 'none';
         }
     }
 }
@@ -135,16 +200,5 @@ function resetBoard() {
     createPiece('ball', 'ball', w / 2, 50);
 }
 
-function checkBallMagnetism(ballPiece) {
-    const ballRect = ballPiece.getBoundingClientRect();
-    const players = document.querySelectorAll('.piece:not(.ball)');
-    players.forEach(function(player) {
-        if (player.style.display !== 'none') {
-            const pRect = player.getBoundingClientRect();
-            if (Math.hypot(ballRect.x - pRect.x, ballRect.y - pRect.y) < 40) {
-                ballPiece.style.left = player.style.left;
-                ballPiece.style.top = player.style.top;
-            }
-        }
-    });
-}
+function setTool(tool, color) { drawMode = true; currentColor = color; }
+function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
