@@ -9,30 +9,26 @@
 <body>
 
 <div id="controls">
-    <select id="formationSelect" onchange="applyTactics()">
+    <select id="formationSelect" onchange="handleFormationChange()">
         <option value="">Select Formation</option>
         <optgroup label="11 v 11">
             <option value="4-3-3">4-3-3</option>
             <option value="4-4-2-flat">4-4-2 (Flat)</option>
-            <option value="4-4-2-diamond">4-4-2 (Diamond)</option>
             <option value="3-5-2">3-5-2</option>
         </optgroup>
         <optgroup label="9 v 9">
             <option value="3-2-3">3-2-3</option>
             <option value="3-4-1-flat">3-4-1 (Flat)</option>
-            <option value="3-4-1-diamond">3-4-1 (Diamond)</option>
-            <option value="3-3-2">3-3-2</option>
         </optgroup>
-        <optgroup label="6 v 6">
-            <option value="2-2-1">2-2-1</option>
-        </optgroup>
+        <optgroup label="My Saved Plays" id="customGroup"></optgroup>
     </select>
     
-    <button class="btn" onclick="resetBoard()">Reset Players</button>
+    <button class="btn" onclick="togglePhase()">Toggle Atk/Def</button>
+    <button class="btn" onclick="saveCustomTactic()">Save Play</button>
     <button class="btn" onclick="setTool('draw', 'black')">Black Ink</button>
     <button class="btn" onclick="setTool('draw', '#d32f2f')">Red Ink</button>
     <button class="btn" onclick="clearCanvas()">Clear Lines</button>
-    <button class="btn" onclick="togglePhase()">Toggle Atk/Def</button>
+    <button class="btn" onclick="resetBoard()">Reset Players</button>
 </div>
 
 <div id="field">
