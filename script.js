@@ -89,8 +89,6 @@ function handleFormationChange() {
 
 function applyTactics() {
     const formation = document.getElementById('formationSelect').value;
-    if (!formation) return;
-
     let size = "11v11";
     if (["3-2-3", "3-4-1-flat"].includes(formation)) size = "9v9";
     if (["2-2-1", "2-3-1"].includes(formation)) size = "6v6";
@@ -134,7 +132,7 @@ function saveCustomTactic() {
 
 function deleteCustomTactic() {
     const select = document.getElementById('formationSelect');
-    if (!select.value.startsWith("CUSTOM_")) return alert("Select a custom play first.");
+    if (!select.value.startsWith("CUSTOM_")) return;
     const name = select.value.replace("CUSTOM_", "");
     if (confirm(`Delete '${name}'?`)) {
         const saved = JSON.parse(localStorage.getItem('gafferPlays') || '{}');
@@ -172,7 +170,7 @@ function applyCustomTactic(name) {
         for (let i in data.blue) if (blueTeam[i]) move(blueTeam[i], data.blue[i]);
         const ball = document.querySelector('.ball');
         if (ball && data.ball) move(ball, data.ball);
-    } catch(e) { console.error("Error loading play:", e); }
+    } catch(e) { console.log(e); }
 }
 
 function createPiece(num, color, x, y) {
